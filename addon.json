@@ -1,8 +1,9 @@
 {
-  "name": "My Custom Govee Integration",
-  "description": "Integrate (at least 1 specific) Govee device with SignalRGB",
+  "name": "Govee BT RGB Strip",
+  "description": "Control Govee Bluetooth RGB Light Strips via SignalRGB",
   "version": "1.0.0",
   "main": "start.js",
+  "type": "plugin",
   "config": {
     "fields": [
       {
