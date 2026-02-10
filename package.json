@@ -1,0 +1,9 @@
+{
+  "name": "signalrgb-govee-plugin",
+  "version": "1.0.0",
+  "description": "Govee BT RGB Strip integration for SignalRGB",
+  "main": "start.js",
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}
