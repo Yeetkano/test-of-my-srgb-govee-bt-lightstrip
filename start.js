@@ -1,80 +1,70 @@
 const { getDevices, controlDevice } = require('./govee');
-const axios = require('axios');
 
-function getConfig() {
-  return {
-    apiKey: global.config.api_key,
-    deviceId: global.config.device_id,
-    model: global.config.device_model
-  };
+// SignalRGB expects these exports
+let eventEmitter;
+
+async function onProfileLoad(context) {
+  console.log('Govee plugin loaded');
+  eventEmitter = context.emit;
 }
 
-async function main() {
-  const { apiKey, deviceId, model } = getConfig();
+async function onProfileUnload(context) {
+  console.log('Govee plugin unloaded');
+}
+
+async function onDeviceRefresh(context) {
+  const apiKey = context.config.api_key;
+  const deviceId = context.config.device_id;
+  const model = context.config.device_model;
 
   if (!apiKey || !deviceId || !model) {
-    console.error('API Key, Device ID, or Device Model is missing.');
+    console.error('Missing configuration: API Key, Device ID, or Device Model');
     return;
   }
 
-  console.log('Starting script with config:', { apiKey, deviceId, model });
-
-  let attempt = 1;
-  let apiLimitReached = false;
-
-  while (true) {
-    try {
-      if (apiLimitReached) {
-        console.log('API limit reached. Waiting for 1 minuit before retrying...');
-        await wait(6 * 10); // Wait for 24 hours
-        apiLimitReached = false;
-        attempt = 1;
-      }
-
-      console.log(`Attempt ${attempt}: Fetching Govee devices...`);
-      const devices = await getDevices(apiKey);
-
-      if (!devices) {
-        throw new Error('Failed to fetch devices');
-      }
-
-      console.log('Govee Devices:', devices);
-
-      // Control a device
-      console.log('Controlling device...');
-      const result = await controlDevice(apiKey, deviceId, model, { name: 'turn', value: 'on' });
-      console.log('Control Result:', result);
-
-      // Integrate with SignalRGB
-      console.log('Integrating with SignalRGB...');
-      integrateWithSignalRGB(devices);
-
-      break; // Break the loop if everything goes well
-
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response && error.response.status === 429) {
-        const retryAfter = error.response.headers['retry-after'] ? parseInt(error.response.headers['retry-after'], 10) : 60;
-        console.log('Rate limited! Please wait before making more requests.');
-        console.log(`Retry after: ${retryAfter} seconds.`);
-
-        if (retryAfter >= 86400) {
-          apiLimitReached = true;
-        } else {
-          await wait(retryAfter * 1000); // Wait for the specified retry period
-        }
-
-        attempt++;
-      } else {
-        console.error('Error:', error.message);
-        break; // Break the loop if there's an error other than rate limiting
+  try {
+    // Fetch devices
+    const devices = await getDevices(apiKey);
+    if (devices) {
+      console.log('Connected to Govee devices:', devices.length);
+      
+      // Control device
+      const result = await controlDevice(apiKey, deviceId, model, { 
+        name: 'turn', 
+        value: 'on' 
+      });
+      
+      if (result) {
+        console.log('Device controlled successfully');
       }
     }
+  } catch (error) {
+    console.error('Error in device refresh:', error.message);
   }
 }
 
-function wait(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+async function onSetLighting(context, launchingContext, colors) {
+  const apiKey = context.config.api_key;
+  const deviceId = context.config.device_id;
+
+  if (!apiKey || !deviceId) {
+    return;
+  }
+
+  // Convert colors to RGB and send to Govee
+  if (colors.length > 0) {
+    const color = colors[0];
+    const hexColor = `${color.r.toString(16).padStart(2, '0')}${color.g.toString(16).padStart(2, '0')}${color.b.toString(16).padStart(2, '0')}`;
+    
+    console.log(`Setting color to: #${hexColor}`);
+    
+    // You can add color control logic here
+  }
 }
 
-main();
-
+module.exports = {
+  onProfileLoad,
+  onProfileUnload,
+  onDeviceRefresh,
+  onSetLighting
+};
