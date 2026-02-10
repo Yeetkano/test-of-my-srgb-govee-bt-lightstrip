@@ -25,8 +25,8 @@ async function main() {
   while (true) {
     try {
       if (apiLimitReached) {
-        console.log('API limit reached. Waiting for 24 hours before retrying...');
-        await wait(86400 * 1000); // Wait for 24 hours
+        console.log('API limit reached. Waiting for 1 minuit before retrying...');
+        await wait(6 * 10); // Wait for 24 hours
         apiLimitReached = false;
         attempt = 1;
       }
@@ -77,3 +77,4 @@ function wait(ms) {
 }
 
 main();
+
